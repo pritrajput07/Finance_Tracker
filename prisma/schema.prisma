@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+
+
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  name          String
+  preferences   String   @default("{\"summaries\":true,\"alerts\":true,\"emails\":false}")
+  createdAt     DateTime @default(now())
+
+  transactions  Transaction[]
+  budgets       Budget[]
+  insights      Insight[]
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  userId      String
+  amount      Float
+  type        String   // "income" | "expense"
+  description String
+  date        DateTime @default(now())
+  categoryId  String?
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    Category? @relation(fields: [categoryId], references: [id])
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // "income" | "expense"
+  color       String   @default("#464555")
+
+  transactions Transaction[]
+  budgets      Budget[]
+}
+
+model Budget {
+  id          String   @id @default(cuid())
+  userId      String
+  categoryId  String
+  amountLimit Float
+  period      String   @default("monthly")
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    Category @relation(fields: [categoryId], references: [id])
+}
+
+model Insight {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  description String
+  type        String   // "alert" | "win" | "audit"
+  calculatedAt DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
