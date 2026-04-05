@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import clsx from "clsx";
+import Image from "next/image";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -80,9 +81,14 @@ export default function Sidebar() {
     <>
       {/* Mobile Top Header */}
       <header className="md:hidden flex items-center justify-between px-6 py-4 bg-surface-lowest ghost-shadow sticky top-0 z-40">
-        <div className="flex flex-col">
-          <h1 className="font-manrope font-bold text-xl text-on-surface">Kinetic Ledger</h1>
-          <p className="text-[10px] text-primary font-bold tracking-widest uppercase opacity-70">Sanctuary</p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 primary-gradient rounded-xl flex items-center justify-center p-1.5 shadow-lg">
+            <Image src="/logo.svg" alt="Kinetic Ledger Logo" width={28} height={28} className="brightness-200" />
+          </div>
+          <div className="flex flex-col">
+            <h1 className="font-manrope font-bold text-xl text-on-surface leading-tight">Kinetic Ledger</h1>
+            <p className="text-[10px] text-primary font-bold tracking-widest uppercase opacity-70">Sanctuary</p>
+          </div>
         </div>
         <button 
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -97,9 +103,14 @@ export default function Sidebar() {
         "fixed inset-y-0 left-0 z-50 w-64 bg-surface flex flex-col p-6 border-r border-surface-low transition-transform duration-300 md:relative md:translate-x-0",
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full shadow-2xl md:shadow-none"
       )}>
-        <div className="hidden md:block mb-12">
-          <h1 className="font-manrope font-bold text-2xl text-on-surface tracking-tight">Kinetic Ledger</h1>
-          <p className="text-on-surface-variant text-sm mt-1">Financial Sanctuary</p>
+        <div className="hidden md:flex items-center gap-4 mb-12">
+          <div className="w-12 h-12 primary-gradient rounded-2xl flex items-center justify-center p-2.5 shadow-[0_8px_20px_-6px_rgba(77,68,227,0.4)] hover:scale-105 transition-transform duration-300">
+            <Image src="/logo.svg" alt="Kinetic Ledger Logo" width={32} height={32} className="brightness-200" />
+          </div>
+          <div className="flex flex-col">
+            <h1 className="font-manrope font-bold text-2xl text-on-surface tracking-tight leading-tight">Kinetic Ledger</h1>
+            <p className="text-on-surface-variant text-[11px] font-bold tracking-widest uppercase opacity-60">Financial Sanctuary</p>
+          </div>
         </div>
 
         <div className="md:hidden flex items-center justify-between mb-8 pb-4 border-b border-surface-low">

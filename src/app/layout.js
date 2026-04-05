@@ -15,6 +15,9 @@ const inter = Inter({
 export const metadata = {
   title: "Kinetic Ledger",
   description: "Financial Sanctuary",
+  icons: {
+    icon: "/logo.svg",
+  },
 };
 
 export default function RootLayout({ children }) {
