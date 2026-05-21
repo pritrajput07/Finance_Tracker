@@ -100,17 +100,19 @@ export default function Settings() {
       <div className="flex flex-col gap-8">
         
         {/* Profile Card */}
-        <section className="bg-surface-lowest p-8 rounded-3xl ghost-shadow flex items-center gap-6 border-l-4 border-primary">
-          <div className="w-16 h-16 rounded-full primary-gradient text-white flex items-center justify-center text-xl font-bold shadow-sm uppercase">
-            {user.name?.substring(0, 2) || "AP"}
-          </div>
-          <div>
-            <h3 className="font-manrope text-2xl font-bold text-on-surface">{user.name}</h3>
-            <p className="text-on-surface-variant font-medium">{user.email}</p>
+        <section className="bg-surface-lowest p-6 md:p-8 rounded-3xl ghost-shadow flex flex-col md:flex-row items-start md:items-center gap-6 border-l-4 border-primary">
+          <div className="flex items-center gap-4 md:gap-6 flex-1 min-w-0">
+            <div className="w-16 h-16 rounded-full primary-gradient text-white flex-shrink-0 flex items-center justify-center text-xl font-bold shadow-sm uppercase">
+              {user.name?.substring(0, 2) || "AP"}
+            </div>
+            <div className="min-w-0">
+              <h3 className="font-manrope text-xl md:text-2xl font-bold text-on-surface truncate">{user.name}</h3>
+              <p className="text-on-surface-variant font-medium truncate text-sm md:text-base">{user.email}</p>
+            </div>
           </div>
           <button 
             onClick={() => setIsEditProfileOpen(true)}
-            className="ml-auto px-6 py-3 bg-surface-low text-on-surface font-semibold rounded-full hover:bg-surface-container-high transition-colors text-sm"
+            className="w-full md:w-auto md:ml-auto px-6 py-3 bg-surface-low text-on-surface font-semibold rounded-full hover:bg-surface-container-high transition-colors text-sm whitespace-nowrap"
           >
             Edit Profile
           </button>
