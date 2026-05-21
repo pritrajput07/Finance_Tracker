@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { 
   ArrowUpRight, 
   ArrowDownRight, 
@@ -9,40 +9,23 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
+import useSWR from "swr";
+
+const fetcher = (url) => fetch(url).then((res) => {
+  if (res.status === 401) {
+    window.location.href = '/login';
+    return;
+  }
+  return res.json();
+});
 
 export default function Dashboard() {
   const [range, setRange] = useState('month');
-  const [data, setData] = useState({
-    totalBalance: 0,
-    periodIncome: 0,
-    periodExpense: 0,
-    momentumData: [],
-    recentTransactions: []
+  
+  const { data, error, isLoading } = useSWR(`/api/dashboard?range=${range}`, fetcher, {
+    revalidateOnFocus: true,
+    dedupingInterval: 5000,
   });
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch(`/api/dashboard?range=${range}`);
-        if (response.status === 401) {
-          window.location.href = '/login';
-          return;
-        }
-        if (response.ok) {
-          const json = await response.json();
-          setData(json);
-        }
-      } catch (error) {
-        console.error("Failed to load dashboard data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchDashboard();
-  }, [range]);
 
   const rangeLabels = {
     day: 'Today',
@@ -51,13 +34,21 @@ export default function Dashboard() {
     year: 'This year'
   };
 
-  if (isLoading && data.momentumData.length === 0) {
+  if (isLoading && !data) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-surface">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
       </div>
     );
   }
+
+  const dashboardData = data || {
+    totalBalance: 0,
+    periodIncome: 0,
+    periodExpense: 0,
+    momentumData: [],
+    recentTransactions: []
+  };
 
   return (
     <div className="p-6 md:p-12 max-w-7xl mx-auto pb-32 md:pb-12">
@@ -96,7 +87,7 @@ export default function Dashboard() {
         <div className="bg-surface-lowest p-8 rounded-3xl ghost-shadow flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300 gap-4">
           <p className="text-on-surface-variant font-medium">Total Balance</p>
           <h2 className="font-manrope text-4xl md:text-5xl font-bold text-on-surface tracking-tight">
-            ₹{data.totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ₹{dashboardData.totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </h2>
         </div>
         
@@ -109,7 +100,7 @@ export default function Dashboard() {
           </div>
           <div>
             <h3 className="font-manrope text-3xl font-bold text-on-surface mb-1">
-              ₹{data.periodIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₹{dashboardData.periodIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </h3>
             <p className="text-sm text-secondary font-medium">{rangeLabels[range]}</p>
           </div>
@@ -124,7 +115,7 @@ export default function Dashboard() {
           </div>
           <div>
             <h3 className="font-manrope text-3xl font-bold text-on-surface mb-1">
-              ₹{data.periodExpense.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₹{dashboardData.periodExpense.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </h3>
             <p className="text-sm text-on-surface-variant">{rangeLabels[range]}</p>
           </div>
@@ -140,7 +131,7 @@ export default function Dashboard() {
             </div>
             <div className="h-64 min-h-[16rem] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={data.momentumData}>
+                <AreaChart data={dashboardData.momentumData}>
                   <defs>
                     <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#3525cd" stopOpacity={0.3}/>
@@ -164,8 +155,8 @@ export default function Dashboard() {
           <div className="bg-surface-low rounded-3xl p-6">
             <h3 className="font-manrope text-xl font-bold text-on-surface mb-6">Recent Flows</h3>
             <div className="flex flex-col gap-4">
-              {data.recentTransactions.length > 0 ? (
-                data.recentTransactions.map((tax) => (
+              {dashboardData.recentTransactions.length > 0 ? (
+                dashboardData.recentTransactions.map((tax) => (
                   <div key={tax.id} className="bg-surface-lowest p-4 rounded-2xl flex items-center justify-between group hover:scale-[1.02] transition-transform duration-200 cursor-pointer shadow-sm">
                     <div className="flex items-center gap-4">
                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${tax.type === 'income' ? 'bg-[#e6f4ea] text-secondary' : 'bg-surface-low text-on-surface-variant'}`}>

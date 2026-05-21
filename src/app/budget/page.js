@@ -13,44 +13,32 @@ import {
   Trash2
 } from "lucide-react";
 import clsx from "clsx";
+import useSWR, { useSWRConfig } from "swr";
+
+const fetcher = (url) => fetch(url).then(res => res.json());
 
 export default function Budget() {
+  const { mutate } = useSWRConfig();
   const [range, setRange] = useState('month');
-  const [data, setData] = useState({
-    totalBudget: 0,
-    totalSpent: 0,
-    remaining: 0,
-    categoryAllocations: []
+  
+  const { data, isLoading } = useSWR(`/api/budgets?range=${range}`, fetcher, {
+    revalidateOnFocus: true,
+    dedupingInterval: 5000,
   });
-  const [isLoading, setIsLoading] = useState(true);
+
+  const { data: categories = [] } = useSWR('/api/categories', fetcher);
+
   const [isPanelOpen, setIsPanelOpen] = useState(false);
-  const [categories, setCategories] = useState([]);
   const [formData, setFormData] = useState({ id: null, categoryId: '', amountLimit: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(null);
 
-  const fetchBudgets = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(`/api/budgets?range=${range}`);
-      if (res.ok) {
-        setData(await res.json());
-      }
-    } catch (error) {
-      console.error("Failed to load budgets:", error);
-    } finally {
-      setIsLoading(false);
-    }
+  const budgetData = data || {
+    totalBudget: 0,
+    totalSpent: 0,
+    remaining: 0,
+    categoryAllocations: []
   };
-
-  useEffect(() => {
-    fetchBudgets();
-    
-    fetch('/api/categories')
-      .then(res => res.json())
-      .then(data => setCategories(data))
-      .catch(err => console.error(err));
-  }, [range]);
 
   const rangeLabels = {
     day: 'Today',
@@ -78,7 +66,7 @@ export default function Budget() {
         method: 'DELETE'
       });
       if (res.ok) {
-        await fetchBudgets();
+        mutate(`/api/budgets?range=${range}`);
       }
     } catch (error) {
       console.error(error);
@@ -97,7 +85,7 @@ export default function Budget() {
         body: JSON.stringify(formData)
       });
       if (res.ok) {
-        await fetchBudgets();
+        mutate(`/api/budgets?range=${range}`);
         setIsPanelOpen(false);
         setFormData({ id: null, categoryId: '', amountLimit: '' });
       }
@@ -108,7 +96,7 @@ export default function Budget() {
     }
   };
 
-  if (isLoading && data.categoryAllocations.length === 0) {
+  if (isLoading && budgetData.categoryAllocations.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-surface">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
@@ -160,21 +148,21 @@ export default function Budget() {
               {isLoading && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
             </div>
             <h2 className="font-manrope text-4xl md:text-5xl font-bold text-on-surface tracking-tight">
-              ₹{data.totalBudget.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+              ₹{budgetData.totalBudget.toLocaleString(undefined, { minimumFractionDigits: 0 })}
             </h2>
           </div>
           
           <div className="bg-surface-lowest p-8 rounded-3xl ghost-shadow flex flex-col justify-between hover:scale-[1.01] transition-transform duration-300 gap-4">
             <p className="text-on-surface-variant font-medium">Spent {rangeLabels[range]}</p>
             <h2 className="font-manrope text-4xl font-bold text-on-surface tracking-tight">
-               ₹{data.totalSpent.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+               ₹{budgetData.totalSpent.toLocaleString(undefined, { minimumFractionDigits: 0 })}
             </h2>
           </div>
 
           <div className="bg-surface-lowest p-8 rounded-3xl ghost-shadow flex flex-col justify-between hover:scale-[1.01] transition-transform duration-300 gap-4 border-b-4 border-primary">
             <p className="text-on-surface-variant font-medium">Available Flux</p>
             <h2 className="font-manrope text-4xl font-bold text-primary tracking-tight">
-              ₹{data.remaining.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+              ₹{budgetData.remaining.toLocaleString(undefined, { minimumFractionDigits: 0 })}
             </h2>
           </div>
         </section>
@@ -184,10 +172,10 @@ export default function Budget() {
             <div className="bg-surface-lowest p-8 rounded-3xl ghost-shadow">
               <div className="flex justify-between items-center mb-8 px-2">
                 <h3 className="font-manrope text-xl font-bold text-on-surface">Category Allocation</h3>
-                <span className="text-xs font-medium text-on-surface-variant py-1.5 px-3 bg-surface-low rounded-full">{data.categoryAllocations.length} Active</span>
+                <span className="text-xs font-medium text-on-surface-variant py-1.5 px-3 bg-surface-low rounded-full">{budgetData.categoryAllocations.length} Active</span>
               </div>
               <div className="flex flex-col gap-8 px-2">
-                {data.categoryAllocations.map((cat, idx) => {
+                {budgetData.categoryAllocations.map((cat, idx) => {
                   const percent = Math.min((cat.spent / cat.total) * 100, 100);
                   const isCritical = percent > 90;
                   
@@ -236,7 +224,7 @@ export default function Budget() {
                     </div>
                   );
                 })}
-                {data.categoryAllocations.length === 0 && (
+                {budgetData.categoryAllocations.length === 0 && (
                   <div className="py-20 text-center flex flex-col items-center gap-4 opacity-40">
                     <Target size={48} />
                     <p className="text-on-surface-variant font-medium">No budgets configured. Set goals to track your growth.</p>
@@ -265,7 +253,7 @@ export default function Budget() {
                 <h4 className="font-bold text-base">Efficiency Milestone</h4>
               </div>
               <p className="text-on-surface-variant text-sm font-medium">
-                You have optimized flow in {data.categoryAllocations.filter(c => (c.spent/c.total) < 0.5).length} sectors.
+                You have optimized flow in {budgetData.categoryAllocations.filter(c => (c.spent/c.total) < 0.5).length} sectors.
               </p>
             </div>
             
@@ -276,7 +264,7 @@ export default function Budget() {
               </div>
               <p className="text-sm font-medium text-on-surface-variant/60 mb-2">Projected Flux Retention</p>
               <p className="font-manrope text-3xl font-bold text-primary">
-                ₹{Math.max(data.remaining, 0).toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                ₹{Math.max(budgetData.remaining, 0).toLocaleString(undefined, { minimumFractionDigits: 0 })}
               </p>
             </div>
           </section>

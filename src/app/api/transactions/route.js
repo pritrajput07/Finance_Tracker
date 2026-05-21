@@ -11,6 +11,8 @@ const transactionSchema = z.object({
   date: z.string().optional().transform(val => val ? new Date(val) : new Date())
 });
 
+const bulkTransactionSchema = z.array(transactionSchema);
+
 export async function GET(request) {
   try {
     const user = await getCurrentUser();
@@ -91,26 +93,47 @@ export async function POST(request) {
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json();
-    const result = transactionSchema.safeParse(body);
-
-    if (!result.success) {
-      return NextResponse.json({ error: "Invalid data", details: result.error.errors }, { status: 400 });
-    }
-
-    const { amount, type, description, categoryId, date } = result.data;
-
-    const transaction = await prisma.transaction.create({
-      data: {
-        userId: user.id,
-        amount,
-        type,
-        description,
-        categoryId,
-        date
+    
+    // Check if it's an array for bulk creation
+    if (Array.isArray(body)) {
+      const result = bulkTransactionSchema.safeParse(body);
+      if (!result.success) {
+        return NextResponse.json({ error: "Invalid data", details: result.error.errors }, { status: 400 });
       }
-    });
 
-    return NextResponse.json(transaction, { status: 201 });
+      const transactionsData = result.data.map(t => ({
+        ...t,
+        userId: user.id
+      }));
+
+      // PostgreSQL and MySQL support createMany
+      const created = await prisma.transaction.createMany({
+        data: transactionsData
+      });
+
+      return NextResponse.json(created, { status: 201 });
+    } else {
+      // Single transaction creation
+      const result = transactionSchema.safeParse(body);
+      if (!result.success) {
+        return NextResponse.json({ error: "Invalid data", details: result.error.errors }, { status: 400 });
+      }
+
+      const { amount, type, description, categoryId, date } = result.data;
+
+      const transaction = await prisma.transaction.create({
+        data: {
+          userId: user.id,
+          amount,
+          type,
+          description,
+          categoryId,
+          date
+        }
+      });
+
+      return NextResponse.json(transaction, { status: 201 });
+    }
   } catch (error) {
     console.error("Transactions POST Error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

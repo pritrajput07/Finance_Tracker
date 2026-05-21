@@ -11,66 +11,45 @@ import {
   Loader2,
   Trash2
 } from "lucide-react";
+import useSWR, { useSWRConfig } from "swr";
+import useSWRInfinite from "swr/infinite";
+
+const fetcher = (url) => fetch(url).then(res => res.json());
 
 export default function Transactions() {
+  const { mutate } = useSWRConfig();
   const [range, setRange] = useState('all');
-  const [transactions, setTransactions] = useState([]);
-  const [insights, setInsights] = useState([]);
   const [search, setSearch] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(null);
-  const [nextCursor, setNextCursor] = useState(null);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const fetchData = async (cursor = null, isLoadMore = false) => {
-    if (isLoadMore) setIsLoadingMore(true);
-    else setIsLoading(true);
-
-    try {
-      const url = new URL(`${window.location.origin}/api/transactions`);
-      url.searchParams.set('search', search);
-      url.searchParams.set('range', range);
-      if (cursor) url.searchParams.set('cursor', cursor);
-      url.searchParams.set('take', '10');
-
-      const [txRes, insightsRes] = await Promise.all([
-        fetch(url.toString()),
-        isLoadMore ? Promise.resolve(null) : fetch('/api/insights')
-      ]);
-      
-      if (txRes.ok) {
-        const data = await txRes.json();
-        if (isLoadMore) {
-          setTransactions(prev => [...prev, ...data.transactions]);
-        } else {
-          setTransactions(data.transactions);
-        }
-        setNextCursor(data.nextCursor);
-      }
-      
-      if (insightsRes && insightsRes.ok) {
-        setInsights(await insightsRes.json());
-      }
-    } catch (error) {
-      console.error("Failed to load data:", error);
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
+  // SWR Infinite key generator
+  const getKey = (pageIndex, previousPageData) => {
+    if (previousPageData && !previousPageData.nextCursor) return null;
+    
+    const url = new URL(`${window.location.origin}/api/transactions`);
+    url.searchParams.set('search', search);
+    url.searchParams.set('range', range);
+    url.searchParams.set('take', '10');
+    if (pageIndex > 0 && previousPageData.nextCursor) {
+      url.searchParams.set('cursor', previousPageData.nextCursor);
     }
+    return url.toString();
   };
 
-  // Main effect for search and range changes
-  useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      fetchData();
-    }, 300);
+  const { data: infiniteData, size, setSize, isLoading: isLoadingTrx, isValidating: isValidatingTrx } = useSWRInfinite(getKey, fetcher, {
+    revalidateOnFocus: true,
+    dedupingInterval: 5000,
+  });
 
-    return () => clearTimeout(debounceTimer);
-  }, [search, range]);
+  const { data: insights = [] } = useSWR('/api/insights', fetcher);
+
+  const transactions = infiniteData ? infiniteData.flatMap(page => page.transactions) : [];
+  const nextCursor = infiniteData?.[infiniteData.length - 1]?.nextCursor;
+  const isLoadingMore = isLoadingTrx || (size > 0 && infiniteData && typeof infiniteData[size - 1] === "undefined");
 
   const handleLoadMore = () => {
     if (nextCursor) {
-      fetchData(nextCursor, true);
+      setSize(size + 1);
     }
   };
 
@@ -83,9 +62,8 @@ export default function Transactions() {
         method: 'DELETE'
       });
       if (res.ok) {
-        // Just remove from local state for speed before full refresh if desired, 
-        // but here we do a full refresh to keep insights in sync.
-        await fetchData();
+        mutate(getKey);
+        mutate('/api/insights');
       }
     } catch (error) {
       console.error("Failed to delete transaction:", error);
@@ -102,7 +80,6 @@ export default function Transactions() {
     year: 'This year'
   };
 
-  // Determine top insight for the banner
   const topInsight = insights.find(i => i.type === 'alert' || i.type === 'win') || {
       title: "Automated Insight",
       description: "Keep tracking your spending to see automated insights here.",
@@ -154,7 +131,7 @@ export default function Transactions() {
           </div>
 
           <div className="bg-surface-lowest rounded-3xl ghost-shadow p-6 relative min-h-[400px]">
-            {(isLoading && transactions.length === 0) && (
+            {(isLoadingTrx && transactions.length === 0) && (
                <div className="absolute inset-0 bg-surface-lowest/50 flex items-center justify-center z-10 rounded-3xl backdrop-blur-[2px]">
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
                </div>
@@ -191,7 +168,7 @@ export default function Transactions() {
                   </div>
                 ))
               ) : (
-                !isLoading && (
+                !isLoadingTrx && (
                   <div className="py-20 text-center flex flex-col items-center gap-4 opacity-50">
                     <Search size={48} />
                     <p className="text-on-surface-variant font-medium uppercase tracking-widest text-xs">No transactions discovered in this sector</p>

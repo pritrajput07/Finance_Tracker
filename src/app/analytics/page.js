@@ -10,35 +10,25 @@ import {
   TrendingUp
 } from "lucide-react";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import useSWR from "swr";
+
+const fetcher = (url) => fetch(url).then(res => res.json());
 
 export default function AnalyticsInsights() {
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState({
+  const { data, isLoading } = useSWR('/api/analytics', fetcher, {
+    revalidateOnFocus: true,
+    dedupingInterval: 10000,
+  });
+
+  const analyticsData = data || {
     trends: [],
     allocation: [],
     insights: [],
     forecast: { title: "Calculating...", message: "Hang tight while we curate your financial path." }
-  });
+  };
 
-  useEffect(() => {
-    const fetchAnalytics = async () => {
-      try {
-        const res = await fetch('/api/analytics');
-        const json = await res.json();
-        if (json.trends) {
-          setData(json);
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAnalytics();
-  }, []);
-
-  if (loading) {
+  if (isLoading && analyticsData.trends.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="animate-spin text-primary" size={40} />
@@ -46,7 +36,7 @@ export default function AnalyticsInsights() {
     );
   }
 
-  const hasData = data.trends.length > 0 && data.trends.some(t => t.value > 0);
+  const hasData = analyticsData.trends.length > 0 && analyticsData.trends.some(t => t.value > 0);
 
   return (
     <div className="p-6 md:p-12 max-w-7xl mx-auto pb-32 md:pb-24">
@@ -72,7 +62,7 @@ export default function AnalyticsInsights() {
             </div>
             <div className="h-64 w-full mt-4">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={data.trends}>
+                <AreaChart data={analyticsData.trends}>
                   <defs>
                     <linearGradient id="colorSpend" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#3525cd" stopOpacity={0.3}/>
@@ -95,7 +85,7 @@ export default function AnalyticsInsights() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={data.allocation}
+                    data={analyticsData.allocation}
                     cx="50%"
                     cy="50%"
                     innerRadius={70}
@@ -104,7 +94,7 @@ export default function AnalyticsInsights() {
                     dataKey="value"
                     stroke="none"
                   >
-                    {data.allocation.map((entry, index) => (
+                    {analyticsData.allocation.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -119,7 +109,7 @@ export default function AnalyticsInsights() {
               </div>
             </div>
             <div className="flex flex-wrap gap-4 justify-center mt-2">
-              {data.allocation.map((item) => (
+              {analyticsData.allocation.map((item) => (
                 <div key={item.name} className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
                   <span className="text-sm font-medium text-on-surface-variant">{item.name} ({item.value.toFixed(1)}%)</span>
@@ -131,7 +121,7 @@ export default function AnalyticsInsights() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        {data.insights.length > 0 ? data.insights.map((insight, idx) => (
+        {analyticsData.insights.length > 0 ? analyticsData.insights.map((insight, idx) => (
           <div key={idx} className="bg-surface-lowest p-6 rounded-3xl ghost-shadow border-t-4 border-primary">
             <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-4">
               {insight.type === 'alert' ? <TrendingDown size={24} /> : <PiggyBank size={24} />}
@@ -180,10 +170,10 @@ export default function AnalyticsInsights() {
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-4 text-primary">
             <Target size={24} />
-            <h3 className="font-manrope text-xl font-bold">{data.forecast.title}</h3>
+            <h3 className="font-manrope text-xl font-bold">{analyticsData.forecast.title}</h3>
           </div>
           <p className="text-on-surface text-lg leading-relaxed font-medium max-w-3xl">
-            {data.forecast.message}
+            {analyticsData.forecast.message}
           </p>
         </div>
       </div>
