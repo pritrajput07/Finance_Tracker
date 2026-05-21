@@ -1,6 +1,7 @@
 import { Manrope, Inter } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -15,8 +16,10 @@ const inter = Inter({
 export const metadata = {
   title: "Kinetic Ledger",
   description: "Financial Sanctuary",
+  manifest: "/manifest.json",
   icons: {
-    icon: "/logo.svg",
+    icon: "/icon.svg",
+    apple: "/icon.svg",
   },
 };
 
@@ -28,12 +31,19 @@ export default function RootLayout({ children }) {
       className={`${manrope.variable} ${inter.variable} h-full antialiased`}
     >
       <body className={`h-full flex flex-col font-inter bg-surface`} suppressHydrationWarning>
-        <div className="flex flex-col md:flex-row h-screen overflow-hidden">
-          <Sidebar />
-          <main className="flex-1 overflow-y-auto bg-surface overflow-x-hidden">
-            {children}
-          </main>
-        </div>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <div className="flex flex-col md:flex-row h-screen overflow-hidden">
+            <Sidebar />
+            <main className="flex-1 overflow-y-auto bg-surface overflow-x-hidden">
+              {children}
+            </main>
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   );

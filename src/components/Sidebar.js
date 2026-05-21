@@ -12,11 +12,14 @@ import {
   Menu,
   X,
   LogOut,
-  User
+  User,
+  Sun,
+  Moon,
+  Zap
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import clsx from "clsx";
-import Image from "next/image";
+import { useTheme } from "next-themes";
 
 import useSWR, { useSWRConfig } from "swr";
 
@@ -26,6 +29,8 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { mutate } = useSWRConfig();
   const { data: settingsData } = useSWR('/api/settings', fetcher);
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -35,6 +40,7 @@ export default function Sidebar() {
   const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     if (settingsData?.user) {
       setProfileForm({ 
         name: settingsData.user.name, 
@@ -83,21 +89,29 @@ export default function Sidebar() {
     <>
       {/* Mobile Top Header */}
       <header className="md:hidden flex items-center justify-between px-6 py-4 bg-surface-lowest ghost-shadow sticky top-0 z-40">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 primary-gradient rounded-xl flex items-center justify-center p-1.5 shadow-lg">
-            <Image src="/logo.svg" alt="Kinetic Ledger Logo" width={28} height={28} className="brightness-200" />
-          </div>
-          <div className="flex flex-col">
-            <h1 className="font-manrope font-bold text-xl text-on-surface leading-tight">Kinetic Ledger</h1>
-            <p className="text-[10px] text-primary font-bold tracking-widest uppercase opacity-70">Sanctuary</p>
-          </div>
+        <div className="flex items-center">
+          {mounted && (
+            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-on-primary shadow-lg">
+              <Zap size={24} fill="currentColor" />
+            </div>
+          )}
         </div>
-        <button 
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="p-2 rounded-xl bg-surface-low text-on-surface-variant hover:text-primary transition-colors"
-        >
-          {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        <div className="flex items-center gap-2">
+          {mounted && (
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="p-2 rounded-xl bg-surface-low text-on-surface-variant hover:text-primary transition-colors"
+            >
+              {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+          )}
+          <button 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-2 rounded-xl bg-surface-low text-on-surface-variant hover:text-primary transition-colors"
+          >
+            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </header>
 
       {/* Desktop Sidebar / Mobile Drawer Over */}
@@ -105,14 +119,12 @@ export default function Sidebar() {
         "fixed inset-y-0 left-0 z-50 w-64 bg-surface flex flex-col p-6 border-r border-surface-low transition-transform duration-300 md:relative md:translate-x-0 md:h-full md:overflow-y-auto custom-scrollbar",
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full shadow-2xl md:shadow-none"
       )}>
-        <div className="hidden md:flex items-center gap-4 mb-12">
-          <div className="w-12 h-12 primary-gradient rounded-2xl flex items-center justify-center p-2.5 shadow-[0_8px_20px_-6px_rgba(77,68,227,0.4)] hover:scale-105 transition-transform duration-300">
-            <Image src="/logo.svg" alt="Kinetic Ledger Logo" width={32} height={32} className="brightness-200" />
-          </div>
-          <div className="flex flex-col">
-            <h1 className="font-manrope font-bold text-2xl text-on-surface tracking-tight leading-tight">Kinetic Ledger</h1>
-            <p className="text-on-surface-variant text-[11px] font-bold tracking-widest uppercase opacity-60">Financial Sanctuary</p>
-          </div>
+        <div className="hidden md:flex items-center justify-center mb-12">
+          {mounted && (
+            <div className="w-20 h-20 bg-primary rounded-[2rem] flex items-center justify-center text-on-primary shadow-2xl hover:scale-105 transition-transform duration-300">
+              <Zap size={40} fill="currentColor" />
+            </div>
+          )}
         </div>
 
         <div className="md:hidden flex items-center justify-between mb-8 pb-4 border-b border-surface-low">
@@ -145,6 +157,15 @@ export default function Sidebar() {
         </nav>
 
         <div className="mt-auto pt-8 flex flex-col gap-5 border-t border-surface-low">
+          {mounted && (
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="flex items-center gap-4 px-4 py-3.5 rounded-2xl text-on-surface-variant hover:bg-surface-low hover:text-on-surface transition-all"
+            >
+              {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+              <span className="text-sm font-medium">{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
+            </button>
+          )}
           <div className="flex items-center gap-4 group cursor-pointer" onClick={() => setIsProfileOpen(true)}>
             <div className="w-11 h-11 rounded-2xl primary-gradient flex items-center justify-center text-white font-bold group-hover:scale-105 transition-transform duration-200 uppercase">
               {user.name.substring(0,2)}

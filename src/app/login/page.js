@@ -1,16 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Lock, Mail, Loader2 } from "lucide-react";
+import { ArrowRight, Lock, Mail, Loader2, Zap } from "lucide-react";
+import { useTheme } from "next-themes";
 
 export default function Login() {
   const router = useRouter();
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -47,13 +54,16 @@ export default function Login() {
       <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-16 items-center z-10 mx-auto">
         
         {/* Left side: Branding */}
-        <div className="hidden lg:flex flex-col gap-8 pr-12">
-          <div>
-            <h1 className="font-manrope font-bold text-4xl text-on-surface tracking-tight mb-2">The Kinetic Ledger</h1>
-            <div className="w-16 h-1 bg-primary/20 rounded-full"></div>
+        <div className="hidden lg:flex flex-col gap-12 pr-12">
+          <div className="flex flex-col items-start gap-8">
+            {mounted && (
+              <div className="w-32 h-32 bg-primary rounded-[2.5rem] flex items-center justify-center text-on-primary shadow-2xl">
+                <Zap size={64} fill="currentColor" />
+              </div>
+            )}
           </div>
           
-          <div className="flex flex-col gap-4 max-w-md mt-8">
+          <div className="flex flex-col gap-4 max-w-md">
             <h2 className="font-manrope text-5xl font-bold tracking-tight text-on-surface leading-[1.1]">
               Secure your <span className="text-primary">financial future</span>.
             </h2>
@@ -63,14 +73,18 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Right side: Login Form */}
         <div className="w-full max-w-md mx-auto">
+          <div className="lg:hidden flex flex-col items-center gap-6 mb-10">
+            {mounted && (
+              <div className="w-24 h-24 bg-primary rounded-[1.5rem] flex items-center justify-center text-on-primary shadow-xl">
+                <Zap size={48} fill="currentColor" />
+              </div>
+            )}
+          </div>
+
+
           <div className="bg-surface-lowest p-10 md:p-12 rounded-[2.5rem] ghost-shadow flex flex-col gap-8 shadow-[0_24px_64px_-16px_rgba(77,68,227,0.12)]">
             
-            <div className="lg:hidden text-center mb-4">
-              <h1 className="font-manrope font-bold text-2xl text-on-surface tracking-tight">The Kinetic Ledger</h1>
-            </div>
-
             <div className="text-center lg:text-left">
               <h2 className="font-manrope text-3xl font-bold tracking-tight text-on-surface">Welcome back</h2>
               <p className="text-on-surface-variant mt-2 font-medium">Login to manage your finances</p>

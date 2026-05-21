@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   ArrowUpRight, 
   ArrowDownRight, 
@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import useSWR from "swr";
+import { useTheme } from "next-themes";
 
 const fetcher = (url) => fetch(url).then((res) => {
   if (res.status === 401) {
@@ -21,7 +22,13 @@ const fetcher = (url) => fetch(url).then((res) => {
 
 export default function Dashboard() {
   const [range, setRange] = useState('month');
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const { data, error, isLoading } = useSWR(`/api/dashboard?range=${range}`, fetcher, {
     revalidateOnFocus: true,
     dedupingInterval: 5000,
@@ -49,6 +56,9 @@ export default function Dashboard() {
     momentumData: [],
     recentTransactions: []
   };
+
+  const chartColor = theme === 'dark' ? '#5c4eff' : '#3525cd';
+  const chartAxisColor = theme === 'dark' ? '#a1a5ad' : '#464555';
 
   return (
     <div className="p-6 md:p-12 max-w-7xl mx-auto pb-32 md:pb-12">
@@ -94,7 +104,7 @@ export default function Dashboard() {
         <div className="bg-surface-lowest p-8 rounded-3xl ghost-shadow flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300 gap-4">
           <div className="flex justify-between items-start">
             <p className="text-on-surface-variant font-medium">Period Earnings</p>
-            <div className="w-10 h-10 rounded-full bg-[#e6f4ea] text-secondary flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-secondary/10 text-secondary flex items-center justify-center">
               <ArrowUpRight size={20} />
             </div>
           </div>
@@ -109,7 +119,7 @@ export default function Dashboard() {
         <div className="bg-surface-lowest p-8 rounded-3xl ghost-shadow flex flex-col justify-between hover:scale-[1.02] transition-transform duration-300 gap-4">
           <div className="flex justify-between items-start">
             <p className="text-on-surface-variant font-medium">Period Spending</p>
-            <div className="w-10 h-10 rounded-full bg-[#fde9ee] text-tertiary flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-tertiary/10 text-tertiary flex items-center justify-center">
               <ArrowDownRight size={20} />
             </div>
           </div>
@@ -130,23 +140,31 @@ export default function Dashboard() {
               {isLoading && <Loader2 className="w-5 h-5 animate-spin text-primary" />}
             </div>
             <div className="h-64 min-h-[16rem] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={dashboardData.momentumData}>
-                  <defs>
-                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3525cd" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#3525cd" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#464555', fontSize: 10}} dy={10} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 12px 32px -4px rgba(77, 68, 227, 0.12)' }}
-                    cursor={{stroke: '#3525cd', strokeWidth: 1, strokeDasharray: '4 4'}}
-                    formatter={(value) => [`₹${value.toLocaleString()}`, "Balance"]}
-                  />
-                  <Area type="monotone" dataKey="value" stroke="#3525cd" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
-                </AreaChart>
-              </ResponsiveContainer>
+              {mounted && (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={dashboardData.momentumData}>
+                    <defs>
+                      <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={chartColor} stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor={chartColor} stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: chartAxisColor, fontSize: 10}} dy={10} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        borderRadius: '12px', 
+                        border: 'none', 
+                        boxShadow: '0 12px 32px -4px rgba(0, 0, 0, 0.12)',
+                        backgroundColor: theme === 'dark' ? '#151921' : '#ffffff',
+                        color: theme === 'dark' ? '#e1e3e6' : '#191c1d'
+                      }}
+                      cursor={{stroke: chartColor, strokeWidth: 1, strokeDasharray: '4 4'}}
+                      formatter={(value) => [`₹${value.toLocaleString()}`, "Balance"]}
+                    />
+                    <Area type="monotone" dataKey="value" stroke={chartColor} strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
         </section>
@@ -159,7 +177,7 @@ export default function Dashboard() {
                 dashboardData.recentTransactions.map((tax) => (
                   <div key={tax.id} className="bg-surface-lowest p-4 rounded-2xl flex items-center justify-between group hover:scale-[1.02] transition-transform duration-200 cursor-pointer shadow-sm">
                     <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${tax.type === 'income' ? 'bg-[#e6f4ea] text-secondary' : 'bg-surface-low text-on-surface-variant'}`}>
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${tax.type === 'income' ? 'bg-secondary/10 text-secondary' : 'bg-surface-low text-on-surface-variant'}`}>
                         {tax.type === 'income' ? <ArrowUpRight size={20} /> : <ArrowDownRight size={20} />}
                       </div>
                       <div>

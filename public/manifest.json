@@ -1,0 +1,17 @@
+{
+  "name": "Kinetic Ledger",
+  "short_name": "Kinetic",
+  "description": "Financial Sanctuary",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8f9fa",
+  "theme_color": "#3525cd",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
