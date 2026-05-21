@@ -27,10 +27,10 @@ export default function RootLayout({ children }) {
       suppressHydrationWarning
       className={`${manrope.variable} ${inter.variable} h-full antialiased`}
     >
-      <body className={`min-h-full flex flex-col font-inter bg-surface`} suppressHydrationWarning>
-        <div className="flex flex-col md:flex-row min-h-screen">
+      <body className={`h-full flex flex-col font-inter bg-surface`} suppressHydrationWarning>
+        <div className="flex flex-col md:flex-row h-screen overflow-hidden">
           <Sidebar />
-          <main className="flex-1 overflow-auto bg-surface">
+          <main className="flex-1 overflow-y-auto bg-surface overflow-x-hidden">
             {children}
           </main>
         </div>

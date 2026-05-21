@@ -18,28 +18,30 @@ import { useState, useEffect } from "react";
 import clsx from "clsx";
 import Image from "next/image";
 
+import useSWR, { useSWRConfig } from "swr";
+
+const fetcher = (url) => fetch(url).then(res => res.json());
+
 export default function Sidebar() {
   const pathname = usePathname();
+  const { mutate } = useSWRConfig();
+  const { data: settingsData } = useSWR('/api/settings', fetcher);
+  
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [user, setUser] = useState({ name: "Julian Thorne", email: "" });
+  
+  const user = settingsData?.user || { name: "User", email: "" };
   const [profileForm, setProfileForm] = useState({ name: "", email: "" });
   const [isUpdating, setIsUpdating] = useState(false);
 
-  async function fetchUser() {
-    try {
-      const res = await fetch('/api/settings');
-      const data = await res.json();
-      if (data.user) {
-        setUser(data.user);
-        setProfileForm({ name: data.user.name, email: data.user.email });
-      }
-    } catch (e) {}
-  }
-
   useEffect(() => {
-    fetchUser();
-  }, []);
+    if (settingsData?.user) {
+      setProfileForm({ 
+        name: settingsData.user.name, 
+        email: settingsData.user.email 
+      });
+    }
+  }, [settingsData]);
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
@@ -51,7 +53,7 @@ export default function Sidebar() {
         body: JSON.stringify(profileForm)
       });
       if (res.ok) {
-        await fetchUser();
+        mutate('/api/settings');
         setIsProfileOpen(false);
       }
     } catch (error) {
@@ -100,7 +102,7 @@ export default function Sidebar() {
 
       {/* Desktop Sidebar / Mobile Drawer Over */}
       <aside className={clsx(
-        "fixed inset-y-0 left-0 z-50 w-64 bg-surface flex flex-col p-6 border-r border-surface-low transition-transform duration-300 md:relative md:translate-x-0",
+        "fixed inset-y-0 left-0 z-50 w-64 bg-surface flex flex-col p-6 border-r border-surface-low transition-transform duration-300 md:relative md:translate-x-0 md:h-full md:overflow-y-auto custom-scrollbar",
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full shadow-2xl md:shadow-none"
       )}>
         <div className="hidden md:flex items-center gap-4 mb-12">

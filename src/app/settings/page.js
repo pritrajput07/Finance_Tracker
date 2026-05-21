@@ -9,35 +9,19 @@ import {
   Database,
   Loader2
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import useSWR, { useSWRConfig } from "swr";
+
+const fetcher = (url) => fetch(url).then(res => res.json());
 
 export default function Settings() {
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState({ name: "", email: "" });
-  const [summaries, setSummaries] = useState(true);
-  const [alerts, setAlerts] = useState(true);
-  const [emails, setEmails] = useState(false);
-
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
-    try {
-      const res = await fetch('/api/settings');
-      const data = await res.json();
-      if (data.user) {
-        setUser(data.user);
-        setSummaries(data.user.preferences.summaries ?? true);
-        setAlerts(data.user.preferences.alerts ?? true);
-        setEmails(data.user.preferences.emails ?? false);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { mutate } = useSWRConfig();
+  const { data: settingsData, isLoading } = useSWR('/api/settings', fetcher);
+  
+  const user = settingsData?.user || { name: "", email: "", preferences: {} };
+  const summaries = user.preferences.summaries ?? true;
+  const alerts = user.preferences.alerts ?? true;
+  const emails = user.preferences.emails ?? false;
 
   const updatePreference = async (key, value) => {
     const newPrefs = {
@@ -46,25 +30,19 @@ export default function Settings() {
       emails: key === 'emails' ? value : emails,
     };
     
-    // Optimistic UI
-    if (key === 'summaries') setSummaries(value);
-    if (key === 'alerts') setAlerts(value);
-    if (key === 'emails') setEmails(value);
-
     try {
       await fetch('/api/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ preferences: newPrefs })
       });
+      mutate('/api/settings');
     } catch (e) {
       console.error(e);
-      // Revert on error
-      fetchSettings();
     }
   };
 
-  if (loading) {
+  if (isLoading && !settingsData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="animate-spin text-primary" size={40} />
