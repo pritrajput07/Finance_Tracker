@@ -7,9 +7,13 @@ import {
   ToggleLeft,
   ToggleRight,
   Database,
-  Loader2
+  Loader2,
+  X,
+  User,
+  Mail,
+  Check
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useSWR, { useSWRConfig } from "swr";
 
 const fetcher = (url) => fetch(url).then(res => res.json());
@@ -18,10 +22,23 @@ export default function Settings() {
   const { mutate } = useSWRConfig();
   const { data: settingsData, isLoading } = useSWR('/api/settings', fetcher);
   
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [formData, setFormData] = useState({ name: "", email: "" });
+
   const user = settingsData?.user || { name: "", email: "", preferences: {} };
   const summaries = user.preferences.summaries ?? true;
   const alerts = user.preferences.alerts ?? true;
   const emails = user.preferences.emails ?? false;
+
+  useEffect(() => {
+    if (settingsData?.user) {
+      setFormData({ 
+        name: settingsData.user.name || "", 
+        email: settingsData.user.email || "" 
+      });
+    }
+  }, [settingsData]);
 
   const updatePreference = async (key, value) => {
     const newPrefs = {
@@ -39,6 +56,29 @@ export default function Settings() {
       mutate('/api/settings');
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    setIsUpdating(true);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      if (res.ok) {
+        mutate('/api/settings');
+        setIsEditProfileOpen(false);
+      } else {
+        alert("Failed to update profile");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("An error occurred");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -62,13 +102,16 @@ export default function Settings() {
         {/* Profile Card */}
         <section className="bg-surface-lowest p-8 rounded-3xl ghost-shadow flex items-center gap-6 border-l-4 border-primary">
           <div className="w-16 h-16 rounded-full primary-gradient text-white flex items-center justify-center text-xl font-bold shadow-sm uppercase">
-            {user.name.substring(0, 2) || "AP"}
+            {user.name?.substring(0, 2) || "AP"}
           </div>
           <div>
             <h3 className="font-manrope text-2xl font-bold text-on-surface">{user.name}</h3>
             <p className="text-on-surface-variant font-medium">{user.email}</p>
           </div>
-          <button className="ml-auto px-6 py-3 bg-surface-low text-on-surface font-semibold rounded-full hover:bg-surface-container-high transition-colors text-sm">
+          <button 
+            onClick={() => setIsEditProfileOpen(true)}
+            className="ml-auto px-6 py-3 bg-surface-low text-on-surface font-semibold rounded-full hover:bg-surface-container-high transition-colors text-sm"
+          >
             Edit Profile
           </button>
         </section>
@@ -151,6 +194,77 @@ export default function Settings() {
         </section>
 
       </div>
+
+      {/* Edit Profile Modal */}
+      {isEditProfileOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-surface-lowest w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-surface-low flex items-center justify-between">
+              <h3 className="font-manrope text-xl font-bold text-on-surface">Edit Profile</h3>
+              <button 
+                onClick={() => setIsEditProfileOpen(false)}
+                className="p-2 hover:bg-surface-low rounded-full transition-colors text-on-surface-variant"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleUpdateProfile} className="p-6 space-y-6">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-on-surface-variant ml-1 flex items-center gap-2">
+                  <User size={14} /> Full Name
+                </label>
+                <input 
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-4 py-3 rounded-2xl bg-surface-low border-none focus:ring-2 focus:ring-primary/20 text-on-surface font-medium transition-all"
+                  placeholder="Your name"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-on-surface-variant ml-1 flex items-center gap-2">
+                  <Mail size={14} /> Email Address
+                </label>
+                <input 
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-4 py-3 rounded-2xl bg-surface-low border-none focus:ring-2 focus:ring-primary/20 text-on-surface font-medium transition-all"
+                  placeholder="your@email.com"
+                />
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setIsEditProfileOpen(false)}
+                  className="flex-1 px-6 py-3 rounded-2xl font-bold text-on-surface-variant hover:bg-surface-low transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  disabled={isUpdating}
+                  className="flex-1 px-6 py-3 bg-primary text-white font-bold rounded-2xl hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isUpdating ? (
+                    <Loader2 className="animate-spin" size={18} />
+                  ) : (
+                    <>
+                      <Check size={18} />
+                      <span>Save Changes</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
